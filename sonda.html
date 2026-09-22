@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0c0e11">
 <title>Sonda MIDI Matribox</title>
-<!-- Sonda MIDI · v0.3.1 · 2026-09-23 · fuente: current/sonda.html -->
+<!-- Sonda MIDI · v0.3.2 · 2026-09-24 · fuente: current/sonda.html -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
   :root{
@@ -87,7 +87,7 @@
 <body>
 <header>
   <h1>Sonda MIDI · Matribox II Pro</h1>
-  <span class="sub">Transporte, captura, decodificación y emisión de tramas SysEx · v0.3.1</span>
+  <span class="sub">Transporte, captura, decodificación y emisión de tramas SysEx · v0.3.2</span>
 </header>
 
 <div class="stack">
@@ -207,7 +207,7 @@
     0x01050003:"Volumen de algoritmo",0x01050004:"BPM",0x01050007:"Habilitar todo",
     0x01050008:"Asignación EXP1",0x01050009:"Asignación EXP2",0x01080001:"Ajustes de CTRL",
     0x00000300:"Global · master volume",0x00000800:"Global · preset modificado",
-    0x00008100:"Global · estado del drum",0x00008400:"Global · BPM del drum",0x00008600:"Global · volumen del drum"
+    0x00008100:"Global · estado del drum",0x00008200:"Global · género/estilo del drum",0x00008300:"Global · estilo del drum",0x00008500:"Global · Sync del drum",0x00008400:"Global · BPM del drum",0x00008600:"Global · volumen del drum"
   };
   var HDR=[0x21,0x25,0x4D,0x50];
   var $=function(s){return document.querySelector(s);};

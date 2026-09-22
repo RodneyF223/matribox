@@ -1,5 +1,5 @@
-// Matribox Hub v0.1.3 — red primero, caché si no hay conexión
-const C='mbx-0.1.3';
+// Matribox Hub v0.1.4 — red primero, caché si no hay conexión
+const C='mbx-0.1.4';
 const BASE=['./','index.html','sonda.html','manifest.webmanifest','icon-192.png','icon-512.png'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(C).then(c=>c.addAll(BASE)).then(()=>self.skipWaiting()));});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(n=>n!==C).map(n=>caches.delete(n)))).then(()=>self.clients.claim()));});

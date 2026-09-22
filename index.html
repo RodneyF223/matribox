@@ -8,7 +8,7 @@
 <link rel="icon" href="icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>Matribox Hub</title>
-<!-- Matribox Hub · v0.1.3 · 2026-09-23 · fuente: current/hub.html -->
+<!-- Matribox Hub · v0.1.4 · 2026-09-24 · fuente: current/hub.html -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
   :root{
@@ -66,8 +66,8 @@
 
   /* ---------- rejilla principal ---------- */
   .hub{display:grid; gap:12px; grid-template-columns:repeat(auto-fit,minmax(340px,1fr)); align-items:start}
-  .col{display:flex; flex-direction:column; gap:12px; min-width:0}
-  @media (min-width:1100px){ .hub{grid-template-columns:1fr 1fr 1.08fr} }
+  .blkfoot{display:flex; flex-direction:column; gap:10px}
+  .sls{display:flex; flex-direction:column; gap:6px}
   .panel{background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:14px;
          display:flex; flex-direction:column; gap:12px; min-width:0}
   .ph{display:flex; align-items:center; justify-content:space-between; gap:8px}
@@ -106,9 +106,8 @@
   button.rec:active,button.rec.flash{background:var(--rec); color:#fff}
   button.play{border-color:var(--play); color:var(--play)}
   button.play:active,button.play.flash{background:var(--play); color:#0b1a0e}
-  button.hold{position:relative; overflow:hidden}
-  button.hold::after{content:""; position:absolute; left:0; bottom:0; height:4px; width:0; background:var(--rec)}
-  button.hold.charging::after{width:100%; transition:width .8s linear}
+  button.del{border-color:#6b2a2a; color:#ffb3b3}
+  button.del:active,button.del.flash{background:var(--rec); color:#fff}
   .seg{display:grid; grid-template-columns:1fr 1fr; gap:0}
   .seg button{border-radius:0} .seg button:first-child{border-radius:var(--r) 0 0 var(--r)}
   .seg button:last-child{border-radius:0 var(--r) var(--r) 0; border-left:none}
@@ -157,6 +156,24 @@
   .ticker span b{color:var(--txt); font-weight:500}
   @media (prefers-reduced-motion:reduce){*{transition:none!important}}
   @media (max-width:520px){ #curPreset{font-size:36px} .slots button{min-height:64px; font-size:24px} }
+  /* Tablet en horizontal: todo en una pantalla.
+     Fila 1: Presets | Looper | Batería · Fila 2: Módulos a lo ancho */
+  @media (min-width:1000px){
+    .hub{grid-template-columns:1fr 1fr 1fr; grid-template-areas:"pres loop drum" "blk blk blk"}
+    .panel.pres{grid-area:pres} .panel.loop{grid-area:loop} .panel.drum{grid-area:drum} .panel.blk{grid-area:blk}
+    .hub > .panel:not(.blk){align-self:stretch}
+    .panel{padding:12px; gap:10px}
+    .banks button{min-height:27px; font-size:12.5px}
+    .slots button{min-height:58px; font-size:26px}
+    .lgrid .big{min-height:76px; font-size:28px}
+    .dgrid button{min-height:64px}
+    .styles{max-height:none; flex:1 1 0; min-height:96px}
+    .blocks{grid-template-columns:repeat(12,1fr)}
+    .blocks button{min-height:52px; font-size:20px}
+    .blocks button small{display:none}
+    .blkfoot{display:grid; grid-template-columns:1.3fr 1fr 1fr; align-items:center; gap:14px}
+    .sl{grid-template-columns:auto 1fr 34px}
+  }
 </style>
 
 
@@ -173,6 +190,7 @@
   <div class="topbtns">
     <button id="btnTap" style="min-width:86px">Tap</button>
     <button id="btnTuner">Afinador</button>
+    <button id="btnCfg" class="ghost">Ajustes</button>
     <button id="btnFull" class="ghost" hidden>Pantalla completa</button>
   </div>
 </div>
@@ -187,6 +205,8 @@
   </div>
   <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:10px">
     <button id="btnRescan">Reexplorar puertos</button>
+    <button data-cc="29" data-v="0">Footswitch: modo preset</button>
+    <button data-cc="29" data-v="127">Footswitch: modo stomp</button>
     <button id="btnDiag">Diagnóstico</button>
     <button id="btnDiagCopy" hidden>Copiar diagnóstico</button>
   </div>
@@ -199,31 +219,16 @@
   <section class="panel pres">
     <div class="ph"><h2>Presets</h2><span class="eyebrow">01A – 60D</span></div>
     <div class="bankbar">
+      <button data-cc="25" data-v="127" aria-label="Preset anterior en la pedalera">P −</button>
       <button id="bankPrev" aria-label="Banco anterior">◀</button>
       <span class="mono" id="bankLbl">Banco 01</span>
       <button id="bankNext" aria-label="Banco siguiente">▶</button>
+      <button data-cc="24" data-v="127" aria-label="Preset siguiente en la pedalera">P +</button>
     </div>
     <div class="slots" id="slots"></div>
     <div class="banks" id="banks"></div>
-    <div class="ctrls">
-      <button data-cc="25" data-v="127">Preset −</button>
-      <button data-cc="24" data-v="127">Preset +</button>
-      <button data-cc="29" data-v="0">Modo preset</button>
-      <button data-cc="29" data-v="127">Modo stomp</button>
-    </div>
   </section>
 
-  <!-- BLOQUES -->
-  <section class="panel blk">
-    <div class="ph"><h2>Módulos</h2><span class="eyebrow">Posición en la cadena</span></div>
-    <div class="blocks" id="blocks"></div>
-    <p class="note">Borde discontinuo: estado desconocido tras cambiar de preset. El primer toque lo enciende.</p>
-    <div class="ctrls" id="ctrls"></div>
-    <div class="sl"><label for="sVol">Volumen</label><input type="range" id="sVol" min="0" max="100" value="100" data-cc="7"><output id="oVol">100</output></div>
-    <div class="sl"><label for="sExp">Expresión</label><input type="range" id="sExp" min="0" max="100" value="0" data-cc="11"><output id="oExp">0</output></div>
-  </section>
-
-  <div class="col">
   <!-- LOOPER -->
   <section class="panel loop">
     <div class="ph"><h2>Looper</h2>
@@ -234,15 +239,16 @@
       <button id="lStop">■ Stop</button>
       <button id="lUndo">↶ Undo</button>
       <button id="lAuto">Auto rec</button>
-      <button class="hold" id="lDel" style="grid-column:span 2">Borrar loop · mantener</button>
+      <button class="del" id="lDel" style="grid-column:span 2">✕ Borrar loop</button>
     </div>
     <div class="seg" role="group" aria-label="Posición del looper">
       <button id="lPost" class="on">Post · 45 s estéreo</button>
       <button id="lPre">Pre · 90 s mono</button>
     </div>
-    <div class="sl"><label for="sRec">Vol. grabación</label><input type="range" id="sRec" min="0" max="100" value="100" data-cc="65"><output id="oRec">100</output></div>
+    <div class="sls">
+    <div class="sl"><label for="sRec">Vol. grab.</label><input type="range" id="sRec" min="0" max="100" value="100" data-cc="65"><output id="oRec">100</output></div>
     <div class="sl"><label for="sPlay">Vol. reproducción</label><input type="range" id="sPlay" min="0" max="100" value="100" data-cc="66"><output id="oPlay">100</output></div>
-    <p class="note">Rec, Play y Auto activan el looper solos si no lo está. Borrar pide mantener 0,8 s.</p>
+    </div>
   </section>
 
   <!-- BATERÍA -->
@@ -253,19 +259,27 @@
       <button class="dplay" id="dPlay">▶ Play</button>
       <button id="dStop">■ Stop</button>
     </div>
-    <div class="state" id="drumState">Ritmo <b id="dRhythm">—</b></div>
+    <div class="state" id="drumState">Ritmo <b id="dRhythm">—</b> · Sync <b id="dSync">—</b></div>
     <div class="genres" id="genres"></div>
     <div class="styles" id="styles"></div>
     <div class="sl"><label for="sDrum">Volumen</label><input type="range" id="sDrum" min="0" max="100" value="80" data-cc="95"><output id="oDrum">80</output></div>
   </section>
-  </div>
+  <!-- MÓDULOS -->
+  <section class="panel blk">
+    <div class="ph"><h2>Módulos</h2><span class="eyebrow">Posición en la cadena · discontinuo = estado desconocido</span></div>
+    <div class="blocks" id="blocks"></div>
+    <div class="blkfoot">
+      <div class="ctrls" id="ctrls"></div>
+      <div class="sl"><label for="sVol">Volumen</label><input type="range" id="sVol" min="0" max="100" value="100" data-cc="7"><output id="oVol">100</output></div>
+      <div class="sl"><label for="sExp">Expresión</label><input type="range" id="sExp" min="0" max="100" value="0" data-cc="11"><output id="oExp">0</output></div>
+    </div>
+  </section>
 </div>
-
 
 <div class="ticker">
   <span>↑ <b id="tkOut">—</b></span>
   <span>↓ <b id="tkIn">—</b></span>
-  <span style="margin-left:auto">Hub v0.1.3</span>
+  <span style="margin-left:auto">Hub v0.1.4</span>
 </div>
 
 <script>
@@ -393,6 +407,7 @@
                        if(genre<GENRES.length){ S.genre=genre; S.rhythm=OFFS[genre]+style; renderDrum(); }
                        tick("#tkIn","Ritmo g"+genre+" s"+style); break; }
         case 0x8400: S.bpm=a[0]; renderTop(); tick("#tkIn","BPM "+a[0]); break;
+        case 0x8500: $("#dSync").textContent = a[0]?"on":"off"; tick("#tkIn","Sync batería "+(a[0]?"on":"off")); break;
         case 0x8600: $("#sDrum").value=a[0]; $("#oDrum").value=a[0]; tick("#tkIn","Vol. batería "+a[0]); break;
         case 0x0300: tick("#tkIn","Master "+a[0]); break;
         default: tick("#tkIn","Global 0x"+p.sub.toString(16)+" = "+a[0]);
@@ -406,7 +421,7 @@
   const MATCH=/matribox|sonicake|qme/i;
   let lastErr="", portSig="";
   function setLed(c,t){ $("#led").className="led "+(c||""); $("#connTxt").textContent=t; }
-  function alertMsg(html,warn){ const a=$("#alert"); a.innerHTML=html||""; a.hidden=!html; a.classList.toggle("warn",!!warn); }
+  function alertMsg(html,warn){ const a=$("#alert"); a.innerHTML=html||""; a.hidden=!html; a.classList.toggle("warn",!!warn); if(html) $("#cfg").hidden=false; }
   const onHosted = HOSTED_URL && location.href.indexOf(HOSTED_URL)===0;
   const link = HOSTED_URL
     ? '<a href="'+HOSTED_URL+'" target="_blank" rel="noopener">'+HOSTED_URL+'</a>'
@@ -478,7 +493,7 @@
     if(S.out){
       setLed(S.inp?"on":"warn", S.out.name+(S.inp?"":" · sin entrada (no veré cambios hechos con el pie)"));
       $("#btnConnect").hidden=true;
-      if(MATCH.test(S.out.name)) alertMsg("");
+      if(MATCH.test(S.out.name)){ alertMsg(""); $("#cfg").hidden=true; }
     } else { setLed("bad","Sin puerto de salida"); $("#btnConnect").hidden=false; }
   }
   function connect(){
@@ -500,7 +515,7 @@
   }
   async function diagnose(){
     const L=[];
-    L.push("Hub v0.1.3 · "+new Date().toISOString());
+    L.push("Hub v0.1.4 · "+new Date().toISOString());
     L.push("URL: "+location.protocol+"//"+location.host);
     L.push("Contexto seguro: "+window.isSecureContext+" · en iframe: "+(window.top!==window.self));
     L.push("Web MIDI: "+(!!navigator.requestMIDIAccess));
@@ -579,13 +594,7 @@
   $("#lUndo").onclick=e=>{ cc(63,127,"Undo/Redo"); flash(e.currentTarget); };
   $("#lPost").onclick=()=>{ S.pre=false; cc(67,0,"Looper post"); renderLooper(); };
   $("#lPre").onclick =()=>{ S.pre=true;  cc(67,127,"Looper pre"); renderLooper(); };
-  (()=>{ // borrar: mantener 0,8 s
-    const b=$("#lDel"); let t=null;
-    const start=e=>{ e.preventDefault(); b.classList.add("charging");
-      t=setTimeout(()=>{ cc(64,127,"Borrar loop"); b.classList.remove("charging"); flash(b); t=null; },800); };
-    const cancel=()=>{ if(t){ clearTimeout(t); t=null; } b.classList.remove("charging"); };
-    b.addEventListener("pointerdown",start); ["pointerup","pointerleave","pointercancel"].forEach(ev=>b.addEventListener(ev,cancel));
-  })();
+  $("#lDel").onclick=e=>{ cc(64,127,"Borrar loop"); flash(e.currentTarget); };
 
   // batería
   $("#btnDrumMenu").onclick=()=>{ S.drumMenu=!S.drumMenu; cc(92,S.drumMenu?127:0,"Menú batería"); renderDrum(); };
@@ -602,6 +611,7 @@
   chSel.onchange=()=>{ S.ch=+chSel.value; store.set("ch",S.ch); };
   $("#inPort").onchange=()=>{ const p=S.midi&&S.midi.inputs.get($("#inPort").value); if(p) store.set("inName",p.name); bind(); };
   $("#outPort").onchange=()=>{ const p=S.midi&&S.midi.outputs.get($("#outPort").value); if(p) store.set("outName",p.name); bind(); };
+  $("#btnCfg").onclick=()=>{ const c=$("#cfg"); c.hidden=!c.hidden; if(!c.hidden) c.open=true; };
   $("#btnRescan").onclick=()=>{ if(S.midi) fillPorts(true); else connect(); };
   $("#btnDiag").onclick=diagnose;
   $("#btnDiagCopy").onclick=()=>{ const t=$("#diagOut").textContent;
