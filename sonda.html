@@ -1,0 +1,446 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0c0e11">
+<title>Sonda MIDI Matribox</title>
+<!-- Sonda MIDI · v0.3.1 · 2026-09-23 · fuente: current/sonda.html -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root{
+    --ink:#0e1013; --panel:#171b20; --panel-2:#1e232a; --line:#2b323b;
+    --txt:#e8ebef; --muted:#8d97a4; --dim:#5d6672;
+    --amber:#f0a530; --rx:#4fd1c5; --tx:#f0a530; --err:#ff6b6b; --ok:#7bd88f;
+    --r:4px; color-scheme:dark;
+  }
+  *{box-sizing:border-box}
+  body{
+    background:var(--ink); color:var(--txt);
+    font-family:"Barlow",system-ui,-apple-system,sans-serif; font-size:15px; line-height:1.45;
+    margin:0 auto; padding-block:0 24px; padding-left:16px; padding-right:16px; max-width:1240px;
+  }
+  h1{margin:0; font-family:"Barlow Condensed",Barlow,sans-serif; font-weight:600; font-size:23px; letter-spacing:.02em}
+  .eyebrow{font-family:"Barlow Condensed",sans-serif; text-transform:uppercase; letter-spacing:.14em;
+           font-size:12px; color:var(--dim); font-weight:600}
+  header{position:sticky; top:env(safe-area-inset-top,0px); z-index:20;
+         background:linear-gradient(var(--ink) 78%,transparent); padding-block:14px 10px;
+         display:flex; flex-wrap:wrap; gap:12px; align-items:baseline}
+  header .sub{color:var(--muted); font-size:13px}
+  .panel{background:var(--panel); border:1px solid var(--line); border-radius:var(--r); padding:14px}
+  .panel > .eyebrow{display:block; margin-bottom:10px}
+  .grid{display:grid; gap:12px; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); align-items:start}
+  .row{display:flex; flex-wrap:wrap; gap:8px; align-items:center}
+  .stack{display:flex; flex-direction:column; gap:12px}
+  button{font-family:"Barlow Condensed",sans-serif; text-transform:uppercase; letter-spacing:.08em;
+    font-size:14px; font-weight:600; background:var(--panel-2); color:var(--txt);
+    border:1px solid var(--line); border-radius:var(--r); padding:9px 14px; cursor:pointer; min-height:40px}
+  button:hover{border-color:var(--dim)} button:active{background:#262c34}
+  button:disabled{opacity:.4; cursor:not-allowed}
+  button.primary{background:var(--amber); color:#1a1205; border-color:var(--amber)}
+  button.danger{border-color:#5c2a2a; color:#ffb3b3}
+  button.sm{min-height:34px; padding:6px 10px; font-size:13px}
+  :focus-visible{outline:2px solid var(--amber); outline-offset:2px}
+  select,input{background:var(--ink); color:var(--txt); border:1px solid var(--line); border-radius:var(--r);
+    padding:8px 10px; font-family:"IBM Plex Mono",monospace; font-size:13px; min-height:40px; max-width:100%}
+  input[type=range]{padding:0; min-height:34px; accent-color:var(--amber)}
+  .field{display:flex; flex-direction:column; gap:4px}
+  .field label{font-family:"Barlow Condensed",sans-serif; text-transform:uppercase; letter-spacing:.1em;
+    font-size:11px; color:var(--dim); font-weight:600}
+  .status{display:flex; gap:9px; align-items:center; font-size:14px}
+  .led{width:9px; height:9px; border-radius:50%; background:var(--dim); flex:none}
+  .led.on{background:var(--ok); box-shadow:0 0 9px var(--ok)}
+  .led.warn{background:var(--amber); box-shadow:0 0 9px var(--amber)}
+  .led.bad{background:var(--err); box-shadow:0 0 9px var(--err)}
+  #diag{font-size:14px; margin-top:12px}
+  #diag p{margin:0 0 8px}
+  code{font-family:"IBM Plex Mono",monospace; font-size:12.5px; color:var(--amber);
+       background:var(--panel-2); padding:1px 5px; border-radius:3px}
+  .hint{color:var(--muted); font-size:13px; margin:0 0 10px}
+  .log{font-family:"IBM Plex Mono",monospace; font-size:12.5px; line-height:1.5; background:#0a0c0e;
+       border:1px solid var(--line); border-radius:var(--r); height:min(52vh,420px); overflow:auto; padding:8px 10px}
+  .ln{display:grid; grid-template-columns:60px 24px 1fr auto; gap:8px; padding:3px 0; border-bottom:1px solid #14181c}
+  .ln .t{color:var(--dim); font-variant-numeric:tabular-nums}
+  .ln .d{font-weight:500; text-align:center}
+  .ln.rx .d{color:var(--rx)} .ln.tx .d{color:var(--tx)} .ln.sys .d{color:var(--muted)}
+  .ln .b{word-break:break-all; white-space:pre-wrap}
+  .ln.sys .b{color:var(--muted)} .ln.err .b{color:var(--err)}
+  .ln .re{font-family:"Barlow Condensed",sans-serif; font-size:11px; letter-spacing:.08em; text-transform:uppercase;
+          color:var(--dim); background:none; border:1px solid var(--line); border-radius:3px;
+          padding:1px 6px; min-height:auto; cursor:pointer; align-self:start}
+  .ln .re:hover{color:var(--amber); border-color:var(--amber)}
+  .decode{color:var(--amber); display:block; margin-top:2px; font-size:12px}
+  .decode b{color:var(--txt); font-weight:500}
+  .presets{display:grid; grid-template-columns:repeat(auto-fill,minmax(62px,1fr)); gap:5px; max-height:180px; overflow:auto}
+  .presets button{min-height:36px; padding:4px; font-size:13px}
+  textarea{width:100%; min-height:90px; background:#0a0c0e; color:var(--muted); border:1px solid var(--line);
+    border-radius:var(--r); font-family:"IBM Plex Mono",monospace; font-size:11.5px; padding:8px; resize:vertical}
+  .frame{font-family:"IBM Plex Mono",monospace; font-size:12px; color:var(--muted); word-break:break-all;
+         background:#0a0c0e; border:1px solid var(--line); border-radius:var(--r); padding:8px; margin-top:8px}
+  .frame b{color:var(--amber)}
+  footer{color:var(--dim); font-size:12.5px; margin-top:20px; border-top:1px solid var(--line); padding-top:12px}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+
+</head>
+<body>
+<header>
+  <h1>Sonda MIDI · Matribox II Pro</h1>
+  <span class="sub">Transporte, captura, decodificación y emisión de tramas SysEx · v0.3.1</span>
+</header>
+
+<div class="stack">
+
+  <section class="panel">
+    <span class="eyebrow">1 · Transporte</span>
+    <div class="row" style="gap:14px">
+      <button id="btnConnect" class="primary">Solicitar acceso MIDI</button>
+      <div class="status"><span class="led" id="led"></span><span id="statusTxt">Sin inicializar</span></div>
+    </div>
+    <div id="diag"></div>
+    <div class="grid" style="margin-top:12px">
+      <div class="field"><label for="inPort">Entrada (pedalera → tablet)</label><select id="inPort"></select></div>
+      <div class="field"><label for="outPort">Salida (tablet → pedalera)</label><select id="outPort"></select></div>
+      <div class="field"><label for="chan">Canal MIDI</label><select id="chan"></select></div>
+    </div>
+  </section>
+
+  <div class="grid">
+    <section class="panel">
+      <span class="eyebrow">2 · Presets y CC estándar</span>
+      <p class="hint">240 presets · 01A–30D con CC0:0 · 31A–60D con CC0:1 · PC 0–119</p>
+      <div class="row" style="margin-bottom:10px">
+        <button class="sm" data-cc="23" data-val="127">Banco −</button>
+        <button class="sm" data-cc="22" data-val="127">Banco +</button>
+        <button class="sm" data-cc="25" data-val="127">Preset −</button>
+        <button class="sm" data-cc="24" data-val="127">Preset +</button>
+        <button class="sm" data-cc="29" data-val="0">Modo preset</button>
+        <button class="sm" data-cc="29" data-val="127">Modo stomp</button>
+      </div>
+      <div class="presets" id="presets"></div>
+    </section>
+
+    <section class="panel">
+      <span class="eyebrow">3 · Control continuo</span>
+      <div class="stack" style="gap:8px">
+        <div class="field"><label for="vol">CC7 · Volumen de preset <span id="volV">100</span></label><input type="range" id="vol" min="0" max="100" value="100"></div>
+        <div class="field"><label for="exp">CC11 · Expresión <span id="expV">0</span></label><input type="range" id="exp" min="0" max="100" value="0"></div>
+        <div class="field"><label for="k1">CC16 · Quick knob 1 <span id="k1V">50</span></label><input type="range" id="k1" min="0" max="100" value="50"></div>
+        <div class="field"><label for="k2">CC18 · Quick knob 2 <span id="k2V">50</span></label><input type="range" id="k2" min="0" max="100" value="50"></div>
+        <div class="field"><label for="k3">CC20 · Quick knob 3 <span id="k3V">50</span></label><input type="range" id="k3" min="0" max="100" value="50"></div>
+      </div>
+    </section>
+  </div>
+
+  <section class="panel">
+    <span class="eyebrow">4 · Constructor de tramas SysEx</span>
+    <p class="hint">Trama: <code>F0 21 25 4D 50 00 00 CK 00 N 00 00 00 · nibbles(TLV) · F7</code> — TLV = cmd(4·LE) + dataLen(4·LE) + datos. <b>CK</b> es el único byte sin resolver.</p>
+    <div class="grid">
+      <div class="field"><label for="cmd">Comando (cmdCode)</label><select id="cmd"></select></div>
+      <div class="field"><label for="sub">Subdirección</label><select id="sub"></select></div>
+      <div class="field"><label for="flag">Flag</label><select id="flag">
+        <option value="18">0x12 · SEND</option><option value="17">0x11 · RSP</option>
+        <option value="20">0x14 · ANS</option></select></div>
+    </div>
+    <div class="grid" style="margin-top:10px">
+      <div class="field"><label for="args">Argumentos · enteros de 32 bits separados por comas (prefijo <code>f</code> para float: <code>f1.0</code>)</label>
+        <input id="args" value="236"></div>
+      <div class="field"><label for="ck">Byte CK</label><input id="ck" value="0" style="max-width:110px"></div>
+    </div>
+    <div class="frame" id="framePrev">—</div>
+    <div class="row" style="margin-top:10px">
+      <button class="sm primary" id="btnSend">Enviar trama</button>
+      <button class="sm danger" id="btnSweep">Barrer CK 0–127</button>
+      <button class="sm" id="btnStop" disabled>Detener</button>
+      <label class="row" style="gap:6px; color:var(--muted); font-size:13px">
+        intervalo <input id="sweepMs" value="120" style="width:80px; min-height:34px"> ms</label>
+      <span id="sweepState" style="color:var(--amber); font-family:'IBM Plex Mono',monospace; font-size:12.5px"></span>
+    </div>
+  </section>
+
+  <section class="panel">
+    <span class="eyebrow">5 · Monitor</span>
+    <div class="row" style="margin-bottom:10px">
+      <button class="sm" id="btnClear">Vaciar</button>
+      <button class="sm" id="btnCopy">Copiar captura</button>
+      <label class="row" style="gap:6px"><input type="checkbox" id="fClock" checked style="min-height:auto"> Ocultar reloj</label>
+      <span id="counts" style="color:var(--muted); font-family:'IBM Plex Mono',monospace; font-size:12.5px; margin-left:auto"></span>
+    </div>
+    <div class="log" id="log"></div>
+    <div class="field" style="margin-top:10px">
+      <label for="sxHex">Enviar bytes SysEx en crudo (con F0 y F7)</label>
+      <div class="row"><input id="sxHex" placeholder="F0 21 25 4D 50 ..." style="flex:1; min-width:220px">
+        <button class="sm" id="btnSx">Enviar</button></div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <span class="eyebrow">Captura en crudo</span>
+    <textarea id="dump" readonly placeholder="Los mensajes aparecen aquí en JSON, listos para copiar."></textarea>
+  </section>
+</div>
+
+<footer>Web MIDI con SysEx exige contexto seguro (HTTPS). En Android, Chrome pide confirmación la primera vez.</footer>
+
+<script>
+(function(){
+  "use strict";
+  var CMDS={
+    0x11000000:"Parámetros globales",0x11000001:"Parámetro global suelto",
+    0x16000000:"EQ global",0x16000001:"EQ global · switch",0x16000002:"EQ global · parámetro",
+    0x14000000:"IR · parámetros",0x14000001:"IR · datos",0x14000002:"IR · renombrar",0x14000003:"IR · ACK",
+    0x18000000:"Clone/NAM · parámetros",0x18000001:"Clone/NAM · datos",0x18000002:"Clone/NAM · renombrar",
+    0x18000003:"Clone/NAM · ACK",0x13000000:"Caja de ritmos",
+    0x10000000:"Preset completo",0x10000001:"Preset · señal",0x10000002:"Preset · exportar/importar",
+    0x17000000:"Preset · ACK"
+  };
+  var SUBS={
+    0x010a0000:"Lista de presets",0x010a0001:"Índice de preset activo",
+    0x01010000:"Info de preset",0x01010001:"Nombre de preset",0x01010004:"Tipo de preset",
+    0x01020000:"Knobs rápidos",0x01020001:"Knob · slot",0x01020002:"Knob · id de parámetro",
+    0x01030001:"Footswitch · tap",0x01030002:"Footswitch · hold",0x01030003:"Footswitch · combo",
+    0x01030004:"Footswitch · reset",
+    0x01040000:"Cadena de efectos",0x01040001:"Cadena · cambiar efecto",0x01040002:"Cadena · algoritmo",
+    0x01040003:"Cadena · pegar",0x01040004:"Cadena · info de control",
+    0x01050000:"Algoritmo",0x01050001:"Valor de parámetro",0x01050002:"ON/OFF de bloque",
+    0x01050003:"Volumen de algoritmo",0x01050004:"BPM",0x01050007:"Habilitar todo",
+    0x01050008:"Asignación EXP1",0x01050009:"Asignación EXP2",0x01080001:"Ajustes de CTRL",
+    0x00000300:"Global · master volume",0x00000800:"Global · preset modificado",
+    0x00008100:"Global · estado del drum",0x00008400:"Global · BPM del drum",0x00008600:"Global · volumen del drum"
+  };
+  var HDR=[0x21,0x25,0x4D,0x50];
+  var $=function(s){return document.querySelector(s);};
+  var midi=null,input=null,output=null,capture=[],t0=performance.now(),nRx=0,nTx=0,sweep=null;
+
+  function hex(n,w){var s=(n>>>0).toString(16).toUpperCase();while(s.length<(w||2))s="0"+s;return s;}
+  function bh(a){var o=[];for(var i=0;i<a.length;i++)o.push(hex(a[i]));return o.join(" ");}
+  function setStatus(c,t){$("#led").className="led "+(c||"");$("#statusTxt").textContent=t;}
+
+  // ---- códec de trama ----
+  function nibEnc(b){var o=[];for(var i=0;i<b.length;i++){o.push(b[i]>>4);o.push(b[i]&0x0F);}return o;}
+  function nibDec(a){var o=[];for(var i=0;i+1<a.length;i+=2)o.push((a[i]<<4)|(a[i+1]&0x0F));return o;}
+  function le32(a,o){return ((a[o]|(a[o+1]<<8)|(a[o+2]<<16)|(a[o+3]<<24))>>>0);}
+  function put32(v){return [v&0xFF,(v>>>8)&0xFF,(v>>>16)&0xFF,(v>>>24)&0xFF];}
+  function f32(v){var b=new ArrayBuffer(4);new DataView(b).setFloat32(0,v,true);
+    var u=new Uint8Array(b);return [u[0],u[1],u[2],u[3]];}
+  function asFloat(a,o){var b=new ArrayBuffer(4),u=new Uint8Array(b);
+    for(var i=0;i<4;i++)u[i]=a[o+i];return new DataView(b).getFloat32(0,true);}
+
+  function buildFrame(cmd,sub,args,flag,ck){
+    var data=[];                          // [innerLen][sub 4][args 4·n][flag][00 00]
+    var body=put32(sub);
+    for(var i=0;i<args.length;i++) body=body.concat(args[i]);
+    var dataLen=1+body.length+3;
+    data.push((dataLen+13)&0xFF);
+    data=data.concat(body,[flag,0,0]);
+    var tlv=put32(cmd).concat(put32(dataLen),data);
+    return [0xF0].concat(HDR,[0,0,ck&0x7F,0,tlv.length&0x7F,0,0,0],nibEnc(tlv),[0xF7]);
+  }
+
+  function parseFrame(b){
+    if(b.length<16||b[0]!==0xF0) return null;
+    for(var i=0;i<4;i++) if(b[1+i]!==HDR[i]) return null;
+    var N=b[9], tlv=nibDec(Array.prototype.slice.call(b,13,13+2*N));
+    if(tlv.length<8) return null;
+    var cmd=le32(tlv,0), dl=le32(tlv,4), data=tlv.slice(8,8+dl);
+    return {ck:b[7],N:N,cmd:cmd,dataLen:dl,data:data};
+  }
+
+  function describe(p){
+    var out="ck <b>0x"+hex(p.ck)+"</b> · cmd <b>0x"+hex(p.cmd,8)+"</b> "+(CMDS[p.cmd]||"desconocido")+
+            " · dataLen <b>"+p.dataLen+"</b>";
+    if(p.data.length>=5){
+      var sub=le32(p.data,1);
+      out+="<br>sub <b>0x"+hex(sub,8)+"</b> "+(SUBS[sub]||"—");
+      var n=Math.floor((p.data.length-1-3-4)/4), vals=[];
+      for(var i=0;i<n;i++){
+        var o=5+4*i, v=le32(p.data,o), fv=asFloat(p.data,o);
+        vals.push(v+(Math.abs(fv)>1e-6&&Math.abs(fv)<1e6?" ("+fv.toFixed(4)+"f)":""));
+      }
+      if(vals.length) out+=" · args <b>"+vals.join(" | ")+"</b>";
+      var fl=p.data[p.data.length-3];
+      out+=" · flag 0x"+hex(fl)+({17:" RSP",18:" SEND",19:" ERR",20:" ANS",21:" RTY"}[fl]||"");
+    }
+    return out;
+  }
+
+  // ---- monitor ----
+  function log(dir,bytes,extra,cls,replay){
+    var el=document.createElement("div"); el.className="ln "+dir+(cls?" "+cls:"");
+    var dt=((performance.now()-t0)/1000).toFixed(3);
+    el.innerHTML='<span class="t"></span><span class="d">'+(dir==="rx"?"◀":dir==="tx"?"▶":"·")+
+                 '</span><span class="b"></span><span class="x"></span>';
+    el.children[0].textContent=dt;
+    el.children[2].textContent=(typeof bytes==="string")?bytes:bh(bytes);
+    if(extra){var d=document.createElement("span");d.className="decode";d.innerHTML=extra;el.children[2].appendChild(d);}
+    if(replay){
+      var rb=document.createElement("button"); rb.className="re"; rb.textContent="repetir";
+      rb.onclick=function(){ send(Array.prototype.slice.call(bytes),"replay"); };
+      el.children[3].appendChild(rb);
+    }
+    var box=$("#log"), at=box.scrollHeight-box.scrollTop-box.clientHeight<40;
+    box.appendChild(el); if(at) box.scrollTop=box.scrollHeight;
+    while(box.childElementCount>1000) box.removeChild(box.firstChild);
+  }
+
+  function onMessage(e){
+    var d=e.data,s=d[0]&0xF0;
+    if($("#fClock").checked&&(d[0]===0xF8||d[0]===0xFE||d[0]===0xFA||d[0]===0xFC))return;
+    nRx++;updCounts();
+    var extra="";
+    if(d[0]===0xF0){var p=parseFrame(d); extra=p?describe(p):"cabecera desconocida";}
+    else if(s===0xC0) extra="Program Change · canal "+((d[0]&0x0F)+1)+" · programa "+d[1];
+    else if(s===0xB0) extra="Control Change · canal "+((d[0]&0x0F)+1)+" · CC"+d[1]+" = "+d[2];
+    capture.push({t:+((performance.now()-t0)/1000).toFixed(3),dir:"rx",hex:bh(d)});
+    log("rx",d,extra,"",d[0]===0xF0); dumpJSON();
+  }
+
+  function send(bytes,label){
+    if(!output){log("sys","Sin puerto de salida seleccionado.","","err");return false;}
+    try{
+      output.send(bytes); nTx++; updCounts();
+      capture.push({t:+((performance.now()-t0)/1000).toFixed(3),dir:"tx",hex:bh(bytes)});
+      log("tx",bytes,label||"",""); dumpJSON(); return true;
+    }catch(err){log("sys","Error al enviar: "+err.message,"","err");return false;}
+  }
+  function updCounts(){$("#counts").textContent="RX "+nRx+"  ·  TX "+nTx;}
+  function dumpJSON(){
+    if(capture.length>400)capture=capture.slice(-400);
+    $("#dump").value=JSON.stringify({device:input?input.name:null,events:capture},null,1);
+  }
+  function ch(){return parseInt($("#chan").value,10)-1;}
+
+  // ---- puertos ----
+  function fillPorts(){
+    var ins=$("#inPort"),outs=$("#outPort"),pi=ins.value,po=outs.value,ni=0,no=0;
+    ins.innerHTML="";outs.innerHTML="";
+    midi.inputs.forEach(function(p){ni++;var o=document.createElement("option");o.value=p.id;
+      o.textContent=p.name+(p.manufacturer?" — "+p.manufacturer:"");ins.appendChild(o);});
+    midi.outputs.forEach(function(p){no++;var o=document.createElement("option");o.value=p.id;
+      o.textContent=p.name+(p.manufacturer?" — "+p.manufacturer:"");outs.appendChild(o);});
+    if(!ni)ins.innerHTML='<option value="">— sin entradas —</option>';
+    if(!no)outs.innerHTML='<option value="">— sin salidas —</option>';
+    if(pi)ins.value=pi; if(po)outs.value=po;
+    bindPorts();
+    setStatus(ni&&no?"on":(ni||no?"warn":"bad"),ni+" entrada(s) · "+no+" salida(s)");
+  }
+  function bindPorts(){
+    if(input)input.onmidimessage=null;
+    input=midi.inputs.get($("#inPort").value)||null;
+    output=midi.outputs.get($("#outPort").value)||null;
+    if(input){input.onmidimessage=onMessage;log("sys","Escuchando en «"+input.name+"».");}
+  }
+  function connect(){
+    if(!navigator.requestMIDIAccess){setStatus("bad","Web MIDI no disponible.");
+      $("#diag").innerHTML="<p>Este navegador no expone <code>navigator.requestMIDIAccess</code>. En Android hace falta Chrome o un navegador Chromium.</p>";return;}
+    if(!window.isSecureContext){setStatus("bad","Contexto inseguro.");
+      $("#diag").innerHTML="<p>Web MIDI exige <code>https://</code>. Un archivo abierto con <code>file://</code> nunca funcionará.</p>";return;}
+    var blocked=false;
+    try{if(document.featurePolicy&&document.featurePolicy.allowsFeature&&!document.featurePolicy.allowsFeature("midi"))blocked=true;}catch(e){}
+    setStatus("warn","Pidiendo permiso…");
+    navigator.requestMIDIAccess({sysex:true}).then(function(a){
+      midi=a; midi.onstatechange=function(ev){log("sys","Puerto "+ev.port.state+": "+ev.port.name);fillPorts();};
+      $("#diag").innerHTML="<p>Permiso concedido con SysEx.</p>";
+      $("#btnConnect").textContent="Reexplorar puertos"; fillPorts();
+    }).catch(function(err){
+      setStatus("bad","Permiso denegado o bloqueado.");
+      $("#diag").innerHTML="<p>Error <code>"+(err.name||"?")+"</code>: "+(err.message||"")+"</p>"+
+        (blocked?"<p>La página va dentro de un iframe que no permite la función <code>midi</code>. Hay que servirla desde su propio dominio.</p>"
+                :"<p>Si lo has denegado sin querer, bórralo en los ajustes del sitio y recarga.</p>");
+    });
+  }
+
+  // ---- constructor ----
+  function parseArgs(){
+    var raw=$("#args").value.trim(); if(!raw) return [];
+    return raw.split(/[\s,]+/).filter(Boolean).map(function(s){
+      if(/^f/i.test(s)) return f32(parseFloat(s.slice(1)));
+      return put32(/^0x/i.test(s)?parseInt(s,16):parseInt(s,10)|0);
+    });
+  }
+  function current(){
+    return buildFrame(parseInt($("#cmd").value,10),parseInt($("#sub").value,10),
+      parseArgs(),parseInt($("#flag").value,10),parseInt($("#ck").value,10)||0);
+  }
+  function preview(){
+    try{
+      var f=current(), p=parseFrame(f);
+      $("#framePrev").innerHTML="<b>"+f.length+" B</b> · "+bh(f)+(p?"<br>"+describe(p):"");
+    }catch(e){$("#framePrev").textContent="Argumentos no válidos.";}
+  }
+  function stopSweep(){ if(sweep){clearInterval(sweep);sweep=null;}
+    $("#btnStop").disabled=true; $("#btnSweep").disabled=false; $("#sweepState").textContent=""; }
+
+  // ---- arranque ----
+  (function(){
+    var sel=$("#chan");
+    for(var i=1;i<=16;i++){var o=document.createElement("option");o.value=i;o.textContent=i;sel.appendChild(o);}
+    sel.value=1;
+    function fill(id,map,def){
+      var s=$("#"+id);
+      Object.keys(map).sort(function(a,b){return a-b;}).forEach(function(k){
+        var o=document.createElement("option");o.value=k;
+        o.textContent="0x"+hex(parseInt(k,10),8)+"  "+map[k];s.appendChild(o);});
+      s.value=def;
+    }
+    fill("cmd",CMDS,0x10000001); fill("sub",SUBS,0x010a0001);
+
+    var box=$("#presets");
+    for(var n=0;n<240;n++){(function(n){
+      var b=document.createElement("button");b.className="sm";
+      var bn=Math.floor(n/4)+1, msb=n>=120?1:0, pc=n%120;
+      b.textContent=(bn<10?"0":"")+bn+"ABCD"[n%4];
+      b.onclick=function(){send([0xB0|ch(),0,msb],"Bank MSB "+msb);send([0xC0|ch(),pc],"PC "+pc+" → "+b.textContent);};
+      box.appendChild(b);})(n);}
+
+    [["vol","volV",7],["exp","expV",11],["k1","k1V",16],["k2","k2V",18],["k3","k3V",20]].forEach(function(c){
+      var el=$("#"+c[0]),out=$("#"+c[1]);
+      el.addEventListener("input",function(){out.textContent=el.value;
+        send([0xB0|ch(),c[2],parseInt(el.value,10)],"CC"+c[2]+" = "+el.value);});
+    });
+    document.querySelectorAll("button[data-cc]").forEach(function(b){
+      b.onclick=function(){var cc=+b.dataset.cc,v=+b.dataset.val;
+        send([0xB0|ch(),cc,v],"CC"+cc+" = "+v);};
+    });
+
+    ["cmd","sub","args","flag","ck"].forEach(function(id){
+      $("#"+id).addEventListener("input",preview); $("#"+id).addEventListener("change",preview); });
+    $("#btnSend").onclick=function(){send(current(),"trama construida");};
+    $("#btnSweep").onclick=function(){
+      if(sweep) return;
+      var ck=0, ms=Math.max(30,parseInt($("#sweepMs").value,10)||120);
+      $("#btnSweep").disabled=true; $("#btnStop").disabled=false;
+      log("sys","Barrido de CK iniciado. Mira la pantalla de la pedalera: el valor que la haga reaccionar es el bueno.");
+      sweep=setInterval(function(){
+        if(ck>127){stopSweep();log("sys","Barrido terminado sin reacción.");return;}
+        $("#ck").value=ck; $("#sweepState").textContent="CK = 0x"+hex(ck)+" ("+ck+")";
+        send(current(),"barrido CK=0x"+hex(ck)); ck++;
+      },ms);
+    };
+    $("#btnStop").onclick=function(){stopSweep();log("sys","Barrido detenido.");};
+    $("#btnConnect").onclick=connect;
+    $("#inPort").onchange=bindPorts; $("#outPort").onchange=bindPorts;
+    $("#btnClear").onclick=function(){$("#log").innerHTML="";capture=[];nRx=nTx=0;updCounts();dumpJSON();};
+    $("#btnCopy").onclick=function(){var ta=$("#dump");ta.select();
+      if(navigator.clipboard)navigator.clipboard.writeText(ta.value).then(function(){
+        $("#btnCopy").textContent="Copiado";setTimeout(function(){$("#btnCopy").textContent="Copiar captura";},1400);});};
+    $("#btnSx").onclick=function(){
+      var raw=$("#sxHex").value.trim().replace(/0x/gi,"").split(/[\s,]+/).filter(Boolean),b=[];
+      for(var i=0;i<raw.length;i++){var v=parseInt(raw[i],16);
+        if(isNaN(v)){log("sys","Hex inválido: "+raw[i],"","err");return;}b.push(v&0xFF);}
+      send(b,"SysEx manual");};
+
+    if("wakeLock" in navigator){var req=function(){navigator.wakeLock.request("screen").catch(function(){});};
+      req();document.addEventListener("visibilitychange",function(){if(!document.hidden)req();});}
+
+    updCounts(); preview();
+    $("#diag").innerHTML="<p>Pulsa <b>Solicitar acceso MIDI</b> y acepta el permiso de Chrome.</p>";
+    log("sys","Sonda lista · contexto seguro: "+(window.isSecureContext?"sí":"NO")+
+        " · Web MIDI: "+(navigator.requestMIDIAccess?"presente":"ausente"));
+  })();
+})();
+</script>
+
+</body>
+</html>

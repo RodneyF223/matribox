@@ -1,0 +1,629 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0c0e11">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Matribox Hub</title>
+<!-- Matribox Hub · v0.1.3 · 2026-09-23 · fuente: current/hub.html -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root{
+    --ink:#0c0e11; --panel:#15191e; --panel-2:#1c2127; --raise:#232930; --line:#2a3139;
+    --txt:#eceff2; --muted:#909aa6; --dim:#5b6470;
+    --amber:#f0a530; --amber-ink:#1c1304;
+    --rec:#ff4f4f; --play:#5fdc74; --drum:#48cfc2; --warn:#f0a530;
+    --r:6px; color-scheme:dark;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+  html,body{background:var(--ink)}
+  body{
+    color:var(--txt); font-family:"Barlow",system-ui,sans-serif; font-size:15px; line-height:1.4;
+    margin:0 auto; max-width:1500px; padding-block:0 20px; padding-left:16px; padding-right:16px;
+    user-select:none; -webkit-user-select:none;
+  }
+  .cond{font-family:"Barlow Condensed",Barlow,sans-serif}
+  .mono{font-family:"IBM Plex Mono",ui-monospace,monospace; font-variant-numeric:tabular-nums}
+  .eyebrow{font-family:"Barlow Condensed",sans-serif; text-transform:uppercase; letter-spacing:.16em;
+           font-size:12px; font-weight:600; color:var(--dim)}
+
+  /* ---------- barra superior ---------- */
+  .top{
+    position:sticky; top:env(safe-area-inset-top,0px); z-index:30; background:var(--ink);
+    display:flex; flex-wrap:wrap; align-items:center; gap:10px 18px;
+    padding-block:10px; border-bottom:1px solid var(--line); margin-bottom:12px;
+  }
+  .conn{display:flex; align-items:center; gap:8px; font-size:13px; color:var(--muted); min-width:0}
+  .led{width:10px; height:10px; border-radius:50%; background:var(--dim); flex:none}
+  .led.on{background:var(--play); box-shadow:0 0 10px var(--play)}
+  .led.warn{background:var(--warn); box-shadow:0 0 10px var(--warn)}
+  .led.bad{background:var(--rec); box-shadow:0 0 10px var(--rec)}
+  .now{display:flex; align-items:baseline; gap:10px; margin-right:auto}
+  .now .lbl{font-size:11px}
+  #curPreset{font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:44px; line-height:1;
+             color:var(--amber); letter-spacing:.02em; min-width:2.6ch}
+  .bpm{display:flex; align-items:baseline; gap:6px}
+  #bpmVal{font-size:26px; font-weight:500}
+  .topbtns{display:flex; gap:8px; flex-wrap:wrap}
+
+  /* ---------- botones ---------- */
+  button{
+    font-family:"Barlow Condensed",sans-serif; font-weight:600; text-transform:uppercase; letter-spacing:.08em;
+    font-size:15px; color:var(--txt); background:var(--panel-2); border:1px solid var(--line);
+    border-radius:var(--r); min-height:48px; padding:8px 14px; cursor:pointer;
+    touch-action:manipulation; transition:background .08s, border-color .08s, transform .05s;
+  }
+  button:active{transform:scale(.97)}
+  button:focus-visible{outline:2px solid var(--amber); outline-offset:2px}
+  button.flash{border-color:var(--amber)!important}
+  button.on{background:var(--amber); color:var(--amber-ink); border-color:var(--amber)}
+  button.ghost{background:transparent}
+  select{background:var(--panel-2); color:var(--txt); border:1px solid var(--line); border-radius:var(--r);
+         min-height:40px; padding:6px 10px; font-family:"IBM Plex Mono",monospace; font-size:13px; max-width:100%}
+
+  /* ---------- rejilla principal ---------- */
+  .hub{display:grid; gap:12px; grid-template-columns:repeat(auto-fit,minmax(340px,1fr)); align-items:start}
+  .col{display:flex; flex-direction:column; gap:12px; min-width:0}
+  @media (min-width:1100px){ .hub{grid-template-columns:1fr 1fr 1.08fr} }
+  .panel{background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:14px;
+         display:flex; flex-direction:column; gap:12px; min-width:0}
+  .ph{display:flex; align-items:center; justify-content:space-between; gap:8px}
+  .ph h2{margin:0; font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:20px;
+         letter-spacing:.06em; text-transform:uppercase}
+  .panel.loop{border-top:3px solid var(--rec)}
+  .panel.drum{border-top:3px solid var(--drum)}
+  .panel.pres{border-top:3px solid var(--amber)}
+  .panel.blk{border-top:3px solid var(--muted)}
+
+  /* presets */
+  .banks{display:grid; grid-template-columns:repeat(10,1fr); gap:4px}
+  .banks button{min-height:34px; padding:0; font-size:13px; font-family:"IBM Plex Mono",monospace;
+                letter-spacing:0; font-weight:500}
+  .banks button.sel{border-color:var(--amber); color:var(--amber)}
+  .banks button.live{background:var(--amber); color:var(--amber-ink); border-color:var(--amber)}
+  .slots{display:grid; grid-template-columns:repeat(4,1fr); gap:8px}
+  .slots button{min-height:78px; font-size:30px; font-weight:700; letter-spacing:.04em}
+  .slots button small{display:block; font-size:12px; font-weight:600; color:var(--muted); letter-spacing:.1em}
+  .slots button.on small{color:var(--amber-ink)}
+  .bankbar{display:flex; gap:8px; align-items:center}
+  .bankbar .mono{flex:1; text-align:center; font-size:18px}
+
+  /* bloques */
+  .blocks{display:grid; grid-template-columns:repeat(4,1fr); gap:8px}
+  .blocks button{min-height:64px; font-size:20px; padding:4px}
+  .blocks button small{display:block; font-size:11px; color:var(--muted); letter-spacing:.12em}
+  .blocks button.on small{color:var(--amber-ink)}
+  .blocks button.unk{border-style:dashed; color:var(--muted)}
+  .ctrls{display:grid; grid-template-columns:repeat(4,1fr); gap:8px}
+
+  /* looper */
+  .lgrid{display:grid; grid-template-columns:repeat(3,1fr); gap:8px}
+  .lgrid .big{grid-column:span 3; min-height:88px; font-size:30px}
+  button.rec{border-color:var(--rec); color:var(--rec)}
+  button.rec:active,button.rec.flash{background:var(--rec); color:#fff}
+  button.play{border-color:var(--play); color:var(--play)}
+  button.play:active,button.play.flash{background:var(--play); color:#0b1a0e}
+  button.hold{position:relative; overflow:hidden}
+  button.hold::after{content:""; position:absolute; left:0; bottom:0; height:4px; width:0; background:var(--rec)}
+  button.hold.charging::after{width:100%; transition:width .8s linear}
+  .seg{display:grid; grid-template-columns:1fr 1fr; gap:0}
+  .seg button{border-radius:0} .seg button:first-child{border-radius:var(--r) 0 0 var(--r)}
+  .seg button:last-child{border-radius:0 var(--r) var(--r) 0; border-left:none}
+
+  /* batería */
+  .dgrid{display:grid; grid-template-columns:1fr 1fr; gap:8px}
+  .dgrid button{min-height:72px; font-size:24px}
+  button.dplay{border-color:var(--drum); color:var(--drum)}
+  button.dplay:active,button.dplay.flash,button.dplay.on{background:var(--drum); color:#06201d; border-color:var(--drum)}
+  .genres{display:flex; flex-wrap:wrap; gap:6px}
+  .genres button{min-height:38px; font-size:13px; padding:4px 10px}
+  .genres button.sel{border-color:var(--drum); color:var(--drum)}
+  .styles{display:grid; grid-template-columns:repeat(auto-fill,minmax(112px,1fr)); gap:6px;
+          max-height:150px; overflow:auto; padding-right:2px}
+  .styles button{min-height:42px; font-size:13px; letter-spacing:.04em; padding:4px 6px; text-transform:none}
+  .styles button.on{background:var(--drum); color:#06201d; border-color:var(--drum)}
+
+  /* sliders */
+  .sl{display:grid; grid-template-columns:96px 1fr 38px; align-items:center; gap:10px}
+  .sl label{font-family:"Barlow Condensed",sans-serif; text-transform:uppercase; letter-spacing:.1em;
+            font-size:12px; color:var(--muted); font-weight:600}
+  .sl output{font-family:"IBM Plex Mono",monospace; font-size:13px; text-align:right; color:var(--txt)}
+  input[type=range]{width:100%; accent-color:var(--amber); min-height:36px; margin:0}
+  .loop input[type=range]{accent-color:var(--rec)}
+  .drum input[type=range]{accent-color:var(--drum)}
+
+  .note{font-size:12.5px; color:var(--muted); margin:0}
+  .state{font-family:"IBM Plex Mono",monospace; font-size:12.5px; color:var(--muted)}
+  .state b{color:var(--txt); font-weight:500}
+
+  .alert{background:#2a1214; border:1px solid var(--rec); border-left:6px solid var(--rec); border-radius:8px;
+         padding:14px 16px; margin-bottom:12px; font-size:16px; line-height:1.45}
+  .alert b{color:#fff} .alert a{color:var(--amber); font-weight:600; word-break:break-all}
+  .alert.warn{background:#2a2110; border-color:var(--amber); border-left-color:var(--amber)}
+  #diagOut{white-space:pre-wrap; font-family:"IBM Plex Mono",monospace; font-size:12px; color:var(--muted);
+           background:var(--ink); border:1px solid var(--line); border-radius:6px; padding:10px; margin:10px 0 0; user-select:text; -webkit-user-select:text}
+  details.cfg{margin-bottom:12px; background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:10px 14px}
+  details.cfg summary{cursor:pointer; font-family:"Barlow Condensed",sans-serif; text-transform:uppercase;
+                      letter-spacing:.14em; font-size:13px; color:var(--muted)}
+  .cfgrow{display:grid; gap:10px; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); margin-top:10px}
+  .cfgrow label{display:flex; flex-direction:column; gap:4px; font-size:12px; color:var(--dim)}
+
+  .ticker{position:sticky; bottom:0; margin-top:12px; background:var(--ink); border-top:1px solid var(--line);
+          padding-block:8px calc(8px + env(safe-area-inset-bottom,0px));
+          display:flex; gap:18px; flex-wrap:wrap; font-family:"IBM Plex Mono",monospace; font-size:12.5px; color:var(--dim)}
+  .ticker span b{color:var(--txt); font-weight:500}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+  @media (max-width:520px){ #curPreset{font-size:36px} .slots button{min-height:64px; font-size:24px} }
+</style>
+
+
+</head>
+<body>
+<div class="top">
+  <div class="conn"><span class="led" id="led"></span><span id="connTxt">Sin conectar</span></div>
+  <button id="btnConnect" class="on">Conectar</button>
+  <div class="now">
+    <span class="eyebrow lbl">Preset</span>
+    <span id="curPreset">—</span>
+  </div>
+  <div class="bpm"><span class="eyebrow">BPM</span><span id="bpmVal" class="mono">—</span></div>
+  <div class="topbtns">
+    <button id="btnTap" style="min-width:86px">Tap</button>
+    <button id="btnTuner">Afinador</button>
+    <button id="btnFull" class="ghost" hidden>Pantalla completa</button>
+  </div>
+</div>
+
+<div id="alert" class="alert" hidden></div>
+<details class="cfg" id="cfg">
+  <summary>Conexión, puertos y diagnóstico</summary>
+  <div class="cfgrow">
+    <label for="inPort">Entrada (pedalera → tablet)<select id="inPort"></select></label>
+    <label for="outPort">Salida (tablet → pedalera)<select id="outPort"></select></label>
+    <label for="chan">Canal MIDI<select id="chan"></select></label>
+  </div>
+  <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:10px">
+    <button id="btnRescan">Reexplorar puertos</button>
+    <button id="btnDiag">Diagnóstico</button>
+    <button id="btnDiagCopy" hidden>Copiar diagnóstico</button>
+  </div>
+  <pre id="diagOut" hidden></pre>
+</details>
+
+<div class="hub">
+
+  <!-- PRESETS -->
+  <section class="panel pres">
+    <div class="ph"><h2>Presets</h2><span class="eyebrow">01A – 60D</span></div>
+    <div class="bankbar">
+      <button id="bankPrev" aria-label="Banco anterior">◀</button>
+      <span class="mono" id="bankLbl">Banco 01</span>
+      <button id="bankNext" aria-label="Banco siguiente">▶</button>
+    </div>
+    <div class="slots" id="slots"></div>
+    <div class="banks" id="banks"></div>
+    <div class="ctrls">
+      <button data-cc="25" data-v="127">Preset −</button>
+      <button data-cc="24" data-v="127">Preset +</button>
+      <button data-cc="29" data-v="0">Modo preset</button>
+      <button data-cc="29" data-v="127">Modo stomp</button>
+    </div>
+  </section>
+
+  <!-- BLOQUES -->
+  <section class="panel blk">
+    <div class="ph"><h2>Módulos</h2><span class="eyebrow">Posición en la cadena</span></div>
+    <div class="blocks" id="blocks"></div>
+    <p class="note">Borde discontinuo: estado desconocido tras cambiar de preset. El primer toque lo enciende.</p>
+    <div class="ctrls" id="ctrls"></div>
+    <div class="sl"><label for="sVol">Volumen</label><input type="range" id="sVol" min="0" max="100" value="100" data-cc="7"><output id="oVol">100</output></div>
+    <div class="sl"><label for="sExp">Expresión</label><input type="range" id="sExp" min="0" max="100" value="0" data-cc="11"><output id="oExp">0</output></div>
+  </section>
+
+  <div class="col">
+  <!-- LOOPER -->
+  <section class="panel loop">
+    <div class="ph"><h2>Looper</h2>
+      <button id="btnLooper" style="min-height:40px">Looper: off</button></div>
+    <div class="lgrid">
+      <button class="rec big" id="lRec">● Rec / Dub</button>
+      <button class="play" id="lPlay">▶ Play</button>
+      <button id="lStop">■ Stop</button>
+      <button id="lUndo">↶ Undo</button>
+      <button id="lAuto">Auto rec</button>
+      <button class="hold" id="lDel" style="grid-column:span 2">Borrar loop · mantener</button>
+    </div>
+    <div class="seg" role="group" aria-label="Posición del looper">
+      <button id="lPost" class="on">Post · 45 s estéreo</button>
+      <button id="lPre">Pre · 90 s mono</button>
+    </div>
+    <div class="sl"><label for="sRec">Vol. grabación</label><input type="range" id="sRec" min="0" max="100" value="100" data-cc="65"><output id="oRec">100</output></div>
+    <div class="sl"><label for="sPlay">Vol. reproducción</label><input type="range" id="sPlay" min="0" max="100" value="100" data-cc="66"><output id="oPlay">100</output></div>
+    <p class="note">Rec, Play y Auto activan el looper solos si no lo está. Borrar pide mantener 0,8 s.</p>
+  </section>
+
+  <!-- BATERÍA -->
+  <section class="panel drum">
+    <div class="ph"><h2>Batería</h2>
+      <button id="btnDrumMenu" style="min-height:40px">Menú: off</button></div>
+    <div class="dgrid">
+      <button class="dplay" id="dPlay">▶ Play</button>
+      <button id="dStop">■ Stop</button>
+    </div>
+    <div class="state" id="drumState">Ritmo <b id="dRhythm">—</b></div>
+    <div class="genres" id="genres"></div>
+    <div class="styles" id="styles"></div>
+    <div class="sl"><label for="sDrum">Volumen</label><input type="range" id="sDrum" min="0" max="100" value="80" data-cc="95"><output id="oDrum">80</output></div>
+  </section>
+  </div>
+</div>
+
+
+<div class="ticker">
+  <span>↑ <b id="tkOut">—</b></span>
+  <span>↓ <b id="tkIn">—</b></span>
+  <span style="margin-left:auto">Hub v0.1.3</span>
+</div>
+
+<script>
+(() => {
+  "use strict";
+  const $ = s => document.querySelector(s);
+
+  // ---------- catálogo de ritmos (100, mismo orden que el editor oficial; índice = CC94) ----------
+  const GENRES = [
+    ["Rock",["Rock 1","Rock 2","Rock 3","Rock 4","Rock 5","Classic Rock 1","Classic Rock 2","Classic Rock 3","Hard Rock","Garage Rock","Prog Rock","Surf Rock","Rock 5/4","Post Rock 1","Post Rock 2","Post Rock 3","Punk 1","Punk 2","Punk 3","Punk 4","EMO","Grunge","New Wave","Post Punk 1","Post Punk 2","Hardcore","Metal 1","Metal 2","Nu-Metal 1","Nu-Metal 2"]],
+    ["Blues",["Blues 1","Blues 2","Blues 3","Blues 4","Swing","Shuffle","Shuffle 3/4","Bluegrass","Country","Folk"]],
+    ["Funk",["Funk 1","Funk 2","Funk 3","Funk 4","Jazz Funk 1","Jazz Funk 2","Jazz Funk 3"]],
+    ["Jazz",["Jazz 1","Jazz 2","Jazz 3","Jazz 4","Bossa Nova 1","Bossa Nova 2","Fusion"]],
+    ["Pop",["Pop 1","Pop 2","Pop 3","Hip Hop 1","Hip Hop 2","Hip Hop 3","Hip Hop Rock","Pub"]],
+    ["Electrónica",["Electro 1","Electro 2","Electronic Pop","Techno","Trip-Hop","Break Beat","Drum & Bass"]],
+    ["World",["Latin 1","Latin 2","Latin 3","Latin Pop 1","Latin Pop 2","Samba","Tango","Beguine","Ska","Polka","Waltz","Reggae 1","Reggae 2","Mazurka","Musette","March 1","March 2","March 3","New Age 1","New Age 2","World"]],
+    ["Metrónomo",["1/4","2/4","3/4","4/4","5/4","6/4","7/4","6/8","7/8","9/8"]]
+  ];
+  const OFFS = []; GENRES.reduce((a,g,i)=>{OFFS[i]=a; return a+g[1].length;},0);
+  const rhythmName = idx => { for(let g=GENRES.length-1; g>=0; g--) if(idx>=OFFS[g]) return GENRES[g][1][idx-OFFS[g]]||"—"; return "—"; };
+
+  // ---------- estado ----------
+  const S = { midi:null, inp:null, out:null, ch:0, preset:null, bank:1,
+              blocks:Array(12).fill(null), looper:false, pre:false, tuner:false,
+              drumMenu:false, drumPlay:false, genre:0, rhythm:null, bpm:null };
+
+  const store = { get(k,d){ try{ const v=localStorage.getItem("mbx."+k); return v===null?d:JSON.parse(v);}catch(e){return d;} },
+                  set(k,v){ try{ localStorage.setItem("mbx."+k, JSON.stringify(v)); }catch(e){} } };
+
+  const pname = i => { const b=Math.floor(i/4)+1; return (b<10?"0":"")+b+"ABCD"[i%4]; };
+
+  // ---------- envío ----------
+  function tick(sel,txt){ $(sel).textContent = txt; }
+  function raw(bytes,label){
+    if(!S.out){ tick("#tkOut","sin salida MIDI — pulsa Conectar"); return false; }
+    try{ S.out.send(bytes); tick("#tkOut", label); return true; }
+    catch(e){ tick("#tkOut","error: "+e.message); return false; }
+  }
+  const cc = (n,v,label) => raw([0xB0|S.ch, n, v&0x7F], (label?label+" · ":"")+"CC"+n+"="+v);
+  function flash(btn){ if(!btn) return; btn.classList.add("flash"); setTimeout(()=>btn.classList.remove("flash"),160); }
+
+  function goPreset(i){
+    const msb = i>=120?1:0, pc = i%120;
+    cc(0,msb); raw([0xC0|S.ch, pc], "Preset "+pname(i)+" · CC0="+msb+" PC="+pc);
+    setPreset(i);
+  }
+
+  // ---------- render ----------
+  function setPreset(i){
+    S.preset=i; S.bank=Math.floor(i/4)+1; S.blocks.fill(null);
+    renderPresets(); renderBlocks();
+  }
+  function renderPresets(){
+    $("#curPreset").textContent = S.preset===null ? "—" : pname(S.preset);
+    $("#bankLbl").textContent = "Banco "+(S.bank<10?"0":"")+S.bank;
+    document.querySelectorAll("#slots button").forEach((b,k)=>{
+      const idx=(S.bank-1)*4+k;
+      b.firstChild.textContent = "ABCD"[k];
+      b.querySelector("small").textContent = pname(idx);
+      b.classList.toggle("on", idx===S.preset);
+    });
+    const live = S.preset===null?null:Math.floor(S.preset/4)+1;
+    document.querySelectorAll("#banks button").forEach((b,k)=>{
+      b.classList.toggle("sel", k+1===S.bank);
+      b.classList.toggle("live", k+1===live);
+    });
+  }
+  function renderBlocks(){
+    document.querySelectorAll("#blocks button").forEach((b,k)=>{
+      const st=S.blocks[k];
+      b.classList.toggle("on", st===true);
+      b.classList.toggle("unk", st===null);
+    });
+  }
+  function renderLooper(){
+    const b=$("#btnLooper"); b.textContent="Looper: "+(S.looper?"on":"off"); b.classList.toggle("on",S.looper);
+    $("#lPost").classList.toggle("on",!S.pre); $("#lPre").classList.toggle("on",S.pre);
+  }
+  function renderDrum(){
+    const m=$("#btnDrumMenu"); m.textContent="Menú: "+(S.drumMenu?"on":"off"); m.classList.toggle("on",S.drumMenu);
+    $("#dPlay").classList.toggle("on",S.drumPlay);
+    $("#dRhythm").textContent = S.rhythm===null ? "—" : rhythmName(S.rhythm)+"  ·  #"+S.rhythm;
+    document.querySelectorAll("#genres button").forEach((b,k)=>b.classList.toggle("sel",k===S.genre));
+    const box=$("#styles"); box.innerHTML="";
+    GENRES[S.genre][1].forEach((name,k)=>{
+      const idx=OFFS[S.genre]+k, b=document.createElement("button");
+      b.textContent=name; b.classList.toggle("on", idx===S.rhythm);
+      b.onclick=()=>{ cc(94,idx,"Ritmo "+name); S.rhythm=idx; renderDrum(); };
+      box.appendChild(b);
+    });
+  }
+  function renderTop(){
+    $("#btnTuner").classList.toggle("on",S.tuner);
+    $("#bpmVal").textContent = S.bpm===null ? "—" : S.bpm;
+  }
+
+  // ---------- recepción: SysEx nativo (solo lectura, no necesita checksum) ----------
+  const HDR=[0x21,0x25,0x4D,0x50];
+  const le32=(a,o)=>((a[o]|(a[o+1]<<8)|(a[o+2]<<16)|(a[o+3]<<24))>>>0);
+  function parse(b){
+    if(b.length<16||b[0]!==0xF0) return null;
+    for(let i=0;i<4;i++) if(b[1+i]!==HDR[i]) return null;
+    const N=b[9], t=[];
+    for(let i=13;i+1<13+2*N && i+1<b.length;i+=2) t.push((b[i]<<4)|(b[i+1]&0x0F));
+    if(t.length<8) return null;
+    const dl=le32(t,4), d=t.slice(8,8+dl);
+    if(d.length<9) return {cmd:le32(t,0), sub:null, args:[]};
+    const args=[]; for(let o=5;o+4<=d.length-3;o+=4) args.push(le32(d,o));
+    return {cmd:le32(t,0), sub:le32(d,1), args};
+  }
+  function onMsg(e){
+    const d=e.data;
+    if(d[0]===0xF8||d[0]===0xFE) return;
+    if(d[0]!==0xF0){ if((d[0]&0xF0)===0xC0) tick("#tkIn","PC "+d[1]); return; }
+    const p=parse(d); if(!p||p.sub===null) return;
+    const a=p.args;
+    if(p.cmd===0x10000001 && p.sub===0x010A0001 && a.length){
+      if(a[0]<240){ setPreset(a[0]); tick("#tkIn","Preset activo "+pname(a[0])); }
+    } else if(p.cmd===0x10000001 && p.sub===0x01050002 && a.length>=2){
+      if(a[0]<12){ S.blocks[a[0]]=!!a[1]; renderBlocks(); tick("#tkIn","Módulo "+(a[0]+1)+" "+(a[1]?"on":"off")); }
+    } else if(p.cmd===0x11000001){
+      switch(p.sub){
+        case 0x8100: S.drumPlay = a[0]!==0; renderDrum(); tick("#tkIn","Batería estado "+a[0]); break;
+        case 0x8200: { const style=a[0]&0xFFFF, genre=(a[0]>>>16)&0xFFFF;
+                       if(genre<GENRES.length){ S.genre=genre; S.rhythm=OFFS[genre]+style; renderDrum(); }
+                       tick("#tkIn","Ritmo g"+genre+" s"+style); break; }
+        case 0x8400: S.bpm=a[0]; renderTop(); tick("#tkIn","BPM "+a[0]); break;
+        case 0x8600: $("#sDrum").value=a[0]; $("#oDrum").value=a[0]; tick("#tkIn","Vol. batería "+a[0]); break;
+        case 0x0300: tick("#tkIn","Master "+a[0]); break;
+        default: tick("#tkIn","Global 0x"+p.sub.toString(16)+" = "+a[0]);
+      }
+    }
+  }
+
+  // ---------- conexión ----------
+  // Dirección propia del Hub (GitHub Pages u otra). Se rellena al publicarlo; vacía = aún no existe.
+  const HOSTED_URL="https://rodneyf223.github.io/matribox/";
+  const MATCH=/matribox|sonicake|qme/i;
+  let lastErr="", portSig="";
+  function setLed(c,t){ $("#led").className="led "+(c||""); $("#connTxt").textContent=t; }
+  function alertMsg(html,warn){ const a=$("#alert"); a.innerHTML=html||""; a.hidden=!html; a.classList.toggle("warn",!!warn); }
+  const onHosted = HOSTED_URL && location.href.indexOf(HOSTED_URL)===0;
+  const link = HOSTED_URL
+    ? '<a href="'+HOSTED_URL+'" target="_blank" rel="noopener">'+HOSTED_URL+'</a>'
+    : "la versión alojada del Hub (su propia dirección web; ver README del proyecto)";
+  function policyBlocked(){
+    try{ if(document.permissionsPolicy) return !document.permissionsPolicy.allowsFeature("midi"); }catch(e){}
+    try{ if(document.featurePolicy) return !document.featurePolicy.allowsFeature("midi"); }catch(e){}
+    return false;
+  }
+  const POLICY_MSG = "<b>Esta vista bloquea el MIDI.</b> claude.ai muestra el Hub dentro de un marco que, en la tablet, tiene el MIDI prohibido; Chrome ni pregunta el permiso. Abre en Chrome "+link+".";
+
+  // Comprueba el entorno antes de nada: sin HTTPS no hay Web MIDI.
+  function envProblem(){
+    const proto=location.protocol;
+    if(!window.isSecureContext)
+      return "<b>La página no está en HTTPS.</b> Web MIDI solo funciona en páginas seguras. Ábrela desde: "+link;
+    if(policyBlocked()) return POLICY_MSG;
+    if(!navigator.requestMIDIAccess)
+      return "<b>Este navegador no tiene Web MIDI.</b> Abre el enlace en <b>Chrome</b> (no dentro de la app de Claude ni en otro navegador): "+link;
+    return null;
+  }
+
+  function listConnected(map){ return [...map.values()].filter(p=>p.state==="connected"); }
+  function fillSelect(sel,list,key){
+    const prev=sel.value, saved=store.get(key,null);
+    sel.innerHTML="";
+    if(!list.length){ sel.innerHTML='<option value="">— ninguno —</option>'; return null; }
+    list.forEach(p=>{ const o=document.createElement("option"); o.value=p.id;
+      o.textContent=p.name+(p.manufacturer?" · "+p.manufacturer:""); sel.appendChild(o); });
+    const pick = list.find(p=>p.id===prev) || list.find(p=>p.name===saved)
+              || list.find(p=>MATCH.test(p.name)||MATCH.test(p.manufacturer||"")) || (list.length===1?list[0]:null);
+    sel.value = pick ? pick.id : list[0].id;
+    return pick;
+  }
+  // Solo reconstruye cuando se conecta o desconecta un puerto, nunca al abrirlo:
+  // así la elección manual no se pierde (fallo de la v0.1.0).
+  function fillPorts(force){
+    const ins=listConnected(S.midi.inputs), outs=listConnected(S.midi.outputs);
+    const sig=ins.concat(outs).map(p=>p.id).join("|");
+    if(!force && sig===portSig) return;
+    portSig=sig;
+    const pi=fillSelect($("#inPort"),ins,"inName"), po=fillSelect($("#outPort"),outs,"outName");
+    if(!ins.length && !outs.length){
+      setLed("bad","Chrome no ve ningún dispositivo MIDI");
+      alertMsg("<b>Chrome tiene permiso MIDI pero no ve la pedalera.</b> Revisa: cable OTG de <b>datos</b> (no solo carga) conectado antes de abrir la página, pedalera encendida, y cierra cualquier otra app de MIDI. Después pulsa <b>Reexplorar puertos</b>.");
+      $("#cfg").open=true; $("#btnConnect").hidden=false; return;
+    }
+    if(!pi||!po){
+      $("#cfg").open=true;
+      alertMsg("No encuentro un puerto llamado «Matribox». Elige la pedalera a mano en <b>Entrada</b> y <b>Salida</b> (justo aquí debajo). Puertos vistos — entrada: "+
+        (ins.map(p=>"«"+p.name+"»").join(", ")||"ninguno")+" · salida: "+(outs.map(p=>"«"+p.name+"»").join(", ")||"ninguno"),true);
+    }
+    bind();
+  }
+  async function bind(){
+    if(S.inp) S.inp.onmidimessage=null;
+    S.inp=null; S.out=null; lastErr="";
+    const inp=S.midi.inputs.get($("#inPort").value)||null;
+    const out=S.midi.outputs.get($("#outPort").value)||null;
+    const errs=[];
+    if(out){ try{ await out.open(); S.out=out; }catch(e){ errs.push("salida «"+out.name+"»: "+(e.name||"")+" "+(e.message||"")); } }
+    if(inp){ try{ await inp.open(); inp.onmidimessage=onMsg; S.inp=inp; }catch(e){ errs.push("entrada «"+inp.name+"»: "+(e.name||"")+" "+(e.message||"")); } }
+    if(errs.length){
+      lastErr=errs.join(" · ");
+      setLed("bad","No se pudo abrir el puerto");
+      alertMsg("<b>Android no deja abrir el puerto MIDI.</b> Casi siempre es porque otra app lo tiene ocupado. Cierra otras apps de música o MIDI, desenchufa y vuelve a enchufar el cable y pulsa <b>Reexplorar puertos</b>.<br><small>"+lastErr+"</small>");
+      $("#cfg").open=true; $("#btnConnect").hidden=false; return;
+    }
+    if(S.out){
+      setLed(S.inp?"on":"warn", S.out.name+(S.inp?"":" · sin entrada (no veré cambios hechos con el pie)"));
+      $("#btnConnect").hidden=true;
+      if(MATCH.test(S.out.name)) alertMsg("");
+    } else { setLed("bad","Sin puerto de salida"); $("#btnConnect").hidden=false; }
+  }
+  function connect(){
+    const env=envProblem();
+    if(env){ setLed("bad","Web MIDI no disponible aquí"); alertMsg(env); return; }
+    setLed("warn","Pidiendo permiso MIDI…");
+    navigator.requestMIDIAccess({sysex:true}).then(m=>{
+      S.midi=m; m.onstatechange=()=>fillPorts(false); fillPorts(true);
+    }).catch(err=>{
+      lastErr=(err.name||"")+" "+(err.message||"");
+      if(err.name==="SecurityError" && /policy/i.test(err.message||"")){
+        setLed("bad","MIDI bloqueado por esta vista"); alertMsg(POLICY_MSG); return; }
+      setLed("bad","Permiso MIDI denegado");
+      if(/^(file|content):$/.test(location.protocol)){
+        alertMsg("<b>Chrome no concede MIDI a este archivo local</b> ("+(err.name||"error")+"). Prueba a abrirlo escribiendo en la barra de Chrome <b>file:///sdcard/Download/</b> y tocando el archivo. Si aun así no deja, la alternativa es servirlo desde la propia tablet (ver README).");
+        return; }
+      alertMsg("<b>Chrome ha denegado el acceso MIDI</b> ("+(err.name||"error")+"). Toca el candado junto a la dirección → Permisos → <b>Dispositivos MIDI: Permitir</b>, recarga y vuelve a pulsar Conectar.");
+    });
+  }
+  async function diagnose(){
+    const L=[];
+    L.push("Hub v0.1.3 · "+new Date().toISOString());
+    L.push("URL: "+location.protocol+"//"+location.host);
+    L.push("Contexto seguro: "+window.isSecureContext+" · en iframe: "+(window.top!==window.self));
+    L.push("Web MIDI: "+(!!navigator.requestMIDIAccess));
+    try{ const st=await navigator.permissions.query({name:"midi",sysex:true}); L.push("Permiso MIDI+SysEx: "+st.state); }catch(e){ L.push("Permiso: no consultable ("+e.name+")"); }
+    try{ if(document.featurePolicy) L.push("Política iframe midi: "+document.featurePolicy.allowsFeature("midi")); }catch(e){}
+    L.push("Navegador: "+navigator.userAgent);
+    if(S.midi){
+      L.push("Entradas:"); S.midi.inputs.forEach(p=>L.push("  · "+p.name+" | "+(p.manufacturer||"-")+" | "+p.state+"/"+p.connection));
+      L.push("Salidas:");  S.midi.outputs.forEach(p=>L.push("  · "+p.name+" | "+(p.manufacturer||"-")+" | "+p.state+"/"+p.connection));
+      L.push("Seleccionado: in="+(S.inp?S.inp.name:"-")+" out="+(S.out?S.out.name:"-"));
+    } else L.push("MIDIAccess: no inicializado");
+    if(lastErr) L.push("Último error: "+lastErr);
+    const o=$("#diagOut"); o.textContent=L.join("\n"); o.hidden=false; $("#btnDiagCopy").hidden=false;
+  }
+
+  // ---------- construcción de la UI ----------
+  // presets
+  const slots=$("#slots");
+  for(let k=0;k<4;k++){
+    const b=document.createElement("button");
+    b.appendChild(document.createTextNode("ABCD"[k]));
+    b.appendChild(document.createElement("small"));
+    b.onclick=()=>goPreset((S.bank-1)*4+k);
+    slots.appendChild(b);
+  }
+  const banks=$("#banks");
+  for(let n=1;n<=60;n++){
+    const b=document.createElement("button"); b.textContent=(n<10?"0":"")+n;
+    b.onclick=()=>{ S.bank=n; renderPresets(); };
+    banks.appendChild(b);
+  }
+  $("#bankPrev").onclick=()=>{ S.bank = S.bank<=1?60:S.bank-1; renderPresets(); };
+  $("#bankNext").onclick=()=>{ S.bank = S.bank>=60?1:S.bank+1; renderPresets(); };
+
+  // módulos (CC43–54)
+  const blocks=$("#blocks");
+  for(let k=0;k<12;k++){
+    const b=document.createElement("button");
+    b.innerHTML=(k+1)+"<small>MÓDULO</small>";
+    b.onclick=()=>{ const next = S.blocks[k]===true ? false : true;
+      cc(43+k, next?127:0, "Módulo "+(k+1)+(next?" on":" off")); S.blocks[k]=next; renderBlocks(); };
+    blocks.appendChild(b);
+  }
+  // CTRL 1–4 (CC70–72, CC74)
+  const ctrls=$("#ctrls");
+  [[70,"CTRL 1"],[71,"CTRL 2"],[72,"CTRL 3"],[74,"CTRL 4"]].forEach(([n,l])=>{
+    const b=document.createElement("button"); b.textContent=l;
+    b.onclick=()=>{ cc(n,127,l); flash(b); }; ctrls.appendChild(b);
+  });
+
+  // botones CC genéricos
+  document.querySelectorAll("button[data-cc]").forEach(b=>{
+    b.onclick=()=>{ cc(+b.dataset.cc, +b.dataset.v, b.textContent); flash(b); };
+  });
+  // sliders
+  document.querySelectorAll("input[type=range][data-cc]").forEach(r=>{
+    const out=r.nextElementSibling; let last=-1, pend=null;
+    r.addEventListener("input",()=>{
+      out.value=r.value;
+      if(pend) return;
+      pend=requestAnimationFrame(()=>{ pend=null; const v=+r.value; if(v!==last){ last=v; cc(+r.dataset.cc,v); } });
+    });
+  });
+
+  // tap / afinador
+  $("#btnTap").onclick=e=>{ cc(69,127,"Tap"); flash(e.currentTarget); };
+  $("#btnTuner").onclick=()=>{ S.tuner=!S.tuner; cc(58,S.tuner?127:0,"Afinador "+(S.tuner?"on":"off")); renderTop(); };
+
+  // looper
+  const looperOn=()=>{ if(!S.looper){ cc(59,127,"Looper on"); S.looper=true; renderLooper(); } };
+  $("#btnLooper").onclick=()=>{ S.looper=!S.looper; cc(59,S.looper?127:0,"Looper "+(S.looper?"on":"off")); renderLooper(); };
+  $("#lRec").onclick =e=>{ looperOn(); cc(60,127,"Rec/Dub"); flash(e.currentTarget); };
+  $("#lAuto").onclick=e=>{ looperOn(); cc(61,127,"Auto rec"); flash(e.currentTarget); };
+  $("#lPlay").onclick=e=>{ looperOn(); cc(62,127,"Loop play"); flash(e.currentTarget); };
+  $("#lStop").onclick=e=>{ cc(62,0,"Loop stop"); flash(e.currentTarget); };
+  $("#lUndo").onclick=e=>{ cc(63,127,"Undo/Redo"); flash(e.currentTarget); };
+  $("#lPost").onclick=()=>{ S.pre=false; cc(67,0,"Looper post"); renderLooper(); };
+  $("#lPre").onclick =()=>{ S.pre=true;  cc(67,127,"Looper pre"); renderLooper(); };
+  (()=>{ // borrar: mantener 0,8 s
+    const b=$("#lDel"); let t=null;
+    const start=e=>{ e.preventDefault(); b.classList.add("charging");
+      t=setTimeout(()=>{ cc(64,127,"Borrar loop"); b.classList.remove("charging"); flash(b); t=null; },800); };
+    const cancel=()=>{ if(t){ clearTimeout(t); t=null; } b.classList.remove("charging"); };
+    b.addEventListener("pointerdown",start); ["pointerup","pointerleave","pointercancel"].forEach(ev=>b.addEventListener(ev,cancel));
+  })();
+
+  // batería
+  $("#btnDrumMenu").onclick=()=>{ S.drumMenu=!S.drumMenu; cc(92,S.drumMenu?127:0,"Menú batería"); renderDrum(); };
+  $("#dPlay").onclick=()=>{ cc(93,127,"Batería play"); S.drumPlay=true; renderDrum(); };
+  $("#dStop").onclick=()=>{ cc(93,0,"Batería stop"); S.drumPlay=false; renderDrum(); };
+  const genres=$("#genres");
+  GENRES.forEach((g,k)=>{ const b=document.createElement("button"); b.textContent=g[0];
+    b.onclick=()=>{ S.genre=k; renderDrum(); }; genres.appendChild(b); });
+
+  // ajustes
+  const chSel=$("#chan");
+  for(let i=1;i<=16;i++){ const o=document.createElement("option"); o.value=i-1; o.textContent="Canal "+i; chSel.appendChild(o); }
+  S.ch=store.get("ch",0); chSel.value=S.ch;
+  chSel.onchange=()=>{ S.ch=+chSel.value; store.set("ch",S.ch); };
+  $("#inPort").onchange=()=>{ const p=S.midi&&S.midi.inputs.get($("#inPort").value); if(p) store.set("inName",p.name); bind(); };
+  $("#outPort").onchange=()=>{ const p=S.midi&&S.midi.outputs.get($("#outPort").value); if(p) store.set("outName",p.name); bind(); };
+  $("#btnRescan").onclick=()=>{ if(S.midi) fillPorts(true); else connect(); };
+  $("#btnDiag").onclick=diagnose;
+  $("#btnDiagCopy").onclick=()=>{ const t=$("#diagOut").textContent;
+    if(navigator.clipboard) navigator.clipboard.writeText(t).then(()=>{ $("#btnDiagCopy").textContent="Copiado"; }).catch(()=>{}); };
+  $("#btnConnect").onclick=connect;
+
+  // pantalla completa y pantalla siempre encendida
+  if(document.fullscreenEnabled){ const f=$("#btnFull"); f.hidden=false;
+    f.onclick=()=>{ document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen().catch(()=>{}); }; }
+  if("wakeLock" in navigator){ const w=()=>navigator.wakeLock.request("screen").catch(()=>{});
+    w(); document.addEventListener("visibilitychange",()=>{ if(!document.hidden) w(); }); }
+
+  renderPresets(); renderBlocks(); renderLooper(); renderDrum(); renderTop();
+
+  // aviso inmediato si el entorno no sirve; si sirve y hay permiso, reconecta solo
+  { const env=envProblem(); if(env){ setLed("bad","Web MIDI no disponible aquí"); alertMsg(env); } }
+  try{
+    navigator.permissions.query({name:"midi",sysex:true}).then(s=>{ if(s.state==="granted") connect(); }).catch(()=>{});
+  }catch(e){}
+})();
+</script>
+
+<script>if('serviceWorker' in navigator && (location.protocol==='https:'||location.hostname==='localhost')){navigator.serviceWorker.register('sw.js').catch(function(){});if(navigator.storage&&navigator.storage.persist)navigator.storage.persist();}</script>
+</body>
+</html>
